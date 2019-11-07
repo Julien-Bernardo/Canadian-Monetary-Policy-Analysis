@@ -1,0 +1,447 @@
+
+************ directory path *********************
+cd "/Users/julienbernardo/Documents/4Y/ECO466/STATA/DATA"
+set more off
+
+************ CANADA interest rate *********************
+* Data source: https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1010013901
+* Download options / CSV download entire table 
+* downloads file 10100139.csv (extract from zip file)
+*
+* Create Stata variables:
+* rate_target_can  - interest rate, overnight target, Canada, quarterly
+* rate_t3m_can     - treasury bills, 3 month rate, Canada, quarterly
+
+clear
+import delimited using 10100139.csv
+keep ïref_date financialmarketstatistics value
+keep if financialmarketstatistics == "Target rate"
+rename value tr
+drop if tr == 0 | tr == .
+gen time = date(ïref_date, "YMD")
+gen year = year(time)
+gen quarter = quarter(time)
+sort year quarter, stable
+by year quarter: egen rate_target_can = mean(tr)
+drop if year == year[_n-1] & quarter == quarter[_n-1]
+keep year quarter rate_target_can
+label variable rate_target_can "Target Rate"
+sort year quarter, stable
+save rate_target_can, replace
+
+import delimited using 10100139.csv, clear
+keep ïref_date financialmarketstatistics value
+keep if financialmarketstatistics == "Treasury Bills, 3-month"
+rename value tr
+drop if tr == 0 | tr == .
+gen time = date(ïref_date, "YMD")
+gen year = year(time)
+gen quarter = quarter(time)
+sort year quarter, stable
+by year quarter: egen rate_t3m_can = mean(tr)
+drop if year == year[_n-1] & quarter == quarter[_n-1]
+keep year quarter rate_t3m_can
+label variable rate_t3m_can "TBills 3m"
+sort year quarter, stable
+save rate_t3m_can, replace
+
+************ CANADA Business investment in inventories *********************
+
+clear
+import delimited using 36100109.csv, varnames(1)
+keep ïref_date prices estimates value
+keep if estimates == "Business investment in inventories" & prices == "Chained (2012) dollars"
+rename value binv_can
+drop if binv_can == 0 | binv_can == .
+gen time = date(ïref_date, "YM")
+gen year = year(time)
+gen quarter = quarter(time)
+keep year quarter binv_can
+label variable binv_can "Business_Inv"
+order year quarter
+sort year quarter, stable
+save binv_can, replace
+
+************ CANADA US trade *********************
+
+*Imports
+clear
+import delimited using 12100011.csv, varnames(1)
+keep ïref_date trade principaltradingpartners seasonaladjustment basis value
+keep if trade == "Import" & principaltradingpartners == "United States" & seasonaladjustment == "Seasonally adjusted" & basis == "Customs"
+rename value import_can_us
+drop if import_can_us == 0 | import_can_us == .
+gen time = date(ïref_date, "YM")
+gen year = year(time)
+gen quarter = quarter(time)
+sort year quarter, stable
+by year quarter: egen quart_import_can_us = mean(import_can_us)
+drop if year == year[_n-1] & quarter == quarter[_n-1]
+keep year quarter quart_import_can_us
+label variable quart_import_can_us "Imports_can_us"
+sort year quarter, stable
+save quart_import_can_us, replace
+
+*Exports
+clear
+import delimited using 12100011.csv, varnames(1)
+keep ïref_date trade principaltradingpartners seasonaladjustment basis value
+keep if trade == "Export" & principaltradingpartners == "United States" & seasonaladjustment == "Seasonally adjusted" & basis == "Customs"
+rename value export_can_us
+drop if export_can_us == 0 | export_can_us == .
+gen time = date(ïref_date, "YM")
+gen year = year(time)
+gen quarter = quarter(time)
+sort year quarter, stable
+by year quarter: egen quart_export_can_us = mean(export_can_us)
+drop if year == year[_n-1] & quarter == quarter[_n-1]
+keep year quarter quart_export_can_us
+label variable quart_export_can_us "Exports_can_us"
+sort year quarter, stable
+save quart_export_can_us, replace
+
+************ CANADA Industrial Product Price Index *********************
+
+clear
+import delimited using ippi.csv, varnames(1)
+gen time = date(date, "YMD")
+gen year = year(time)
+gen quarter = quarter(time)
+rename ippi ippi_can
+label variable ippi_can "IPPI_Canada"
+keep year quarter ippi_can
+order year quarter
+sort year quarter, stable
+save ippi_can, replace
+
+************ CANADA Unemployment *********************
+
+clear
+import delimited using un_can.csv, varnames(1)
+gen time = date(date, "YMD")
+gen year = year(time)
+gen quarter = quarter(time)
+label variable un_can "Unemployment_can"
+keep year quarter un_can
+order year quarter
+sort year quarter, stable
+save un_can, replace
+
+************ CANADA CAD USD exchange rate (1 CAD = ? USD) ********************
+
+clear
+import delimited using exr_us_can.csv, varnames(1)
+gen time = date(date, "YMD")
+gen year = year(time)
+gen quarter = quarter(time)
+sort year quarter, stable
+by year quarter: egen quart_exr_us_can = mean(exr_us_can)
+drop if year == year[_n-1] & quarter == quarter[_n-1]
+label variable quart_exr_us_can "Exchange_rate_cad_usd"
+keep year quarter quart_exr_us_can
+sort year quarter, stable
+save quart_exr_us_can, replace
+
+************ CANADA GDP *********************
+* Data source: https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610010401
+* Download button / CSV download entire table 
+* downloads file 36100104.csv (extract from zip file)
+*
+* Create Stata variables:
+* gdp_can - GDP Canada, consumption based, chained (2007) dollars, quarterly
+
+clear
+import delimited using 36100104.csv, varnames(1)
+keep ïref_date prices estimates value
+keep if prices == "Chained (2012) dollars" & estimates == "Final consumption expenditure"
+gen time = date(ïref_date, "YM")
+gen year = year(time)
+gen quarter = quarter(time)
+rename value gdp_can
+tsset time
+keep year quarter gdp_can
+label variable gdp_can "GDP"
+order year quarter
+sort year quarter, stable
+save gdp_can, replace
+
+
+************ CANADA CPI *********************
+* Data source: https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1810025601&request_locale=en
+* Download button / CSV download entire table 
+* downloads file 18100256.csv (extract from zip file)
+*
+* Create Stata variables:
+* cpi_can - Consumer Price Index (CPI), all-items excluding eight of the most volatile components as defined by the Bank of Canada (2002=100)
+* cpipc_comm_can - Measure of core inflation based on a factor model, CPI-common (year-over-year percent change)
+* cpipc_med_can  - Measure of core inflation based on a weighted median approach, CPI-median (year-over-year percent change)
+* cpipc_trim_can - Measure of core inflation based on a trimmed mean approach, CPI-trim (year-over-year percent change)
+
+clear
+import delimited using 18100256.csv, varnames(1)
+keep if alternativemeasures == "Consumer Price Index (CPI), all-items excluding eight of the most volatile components as defined by the Bank of Canada"
+keep ïref_date value
+gen time = date(ïref_date, "YM")
+gen year = year(time)
+gen quarter = quarter(time)
+rename value rvalue
+sort year quarter, stable
+by year quarter: egen cpi_can = mean(rvalue)
+drop if year == year[_n-1] & quarter == quarter[_n-1]
+label variable cpi_can "CPI"
+keep year quarter cpi_can
+sort year quarter, stable
+save cpi_can, replace
+
+clear
+import delimited using 18100256.csv, varnames(1)
+keep if alternativemeasures == "Measure of core inflation based on a factor model, CPI-common (year-over-year percent change)"
+keep ïref_date value
+gen time = date(ïref_date, "YM")
+gen year = year(time)
+gen quarter = quarter(time)
+rename value rvalue
+sort year quarter, stable
+by year quarter: egen cpipc_comm_can = mean(rvalue)
+drop if year == year[_n-1] & quarter == quarter[_n-1]
+label variable cpipc_comm_can "Core CPI (Factor Model), y to y %ch"
+keep year quarter cpipc_comm_can
+sort year quarter, stable
+save cpipc_comm_can, replace
+
+clear
+import delimited using 18100256.csv, varnames(1)
+keep if alternativemeasures == "Measure of core inflation based on a weighted median approach, CPI-median (year-over-year percent change)"
+keep ïref_date value
+gen time = date(ïref_date, "YM")
+gen year = year(time)
+gen quarter = quarter(time)
+rename value rvalue
+sort year quarter, stable
+by year quarter: egen cpipc_med_can = mean(rvalue)
+drop if year == year[_n-1] & quarter == quarter[_n-1]
+label variable cpipc_med_can "Core CPI (Weighted Median), y to y %ch"
+keep year quarter cpipc_med_can
+sort year quarter, stable
+save cpipc_med_can, replace
+
+clear
+import delimited using 18100256.csv, varnames(1)
+keep if alternativemeasures == "Measure of core inflation based on a trimmed mean approach, CPI-trim (year-over-year percent change)"
+keep ïref_date value
+gen time = date(ïref_date, "YM")
+gen year = year(time)
+gen quarter = quarter(time)
+rename value rvalue
+sort year quarter, stable
+by year quarter: egen cpipc_trim_can = mean(rvalue)
+drop if year == year[_n-1] & quarter == quarter[_n-1]
+label variable cpipc_trim_can "Core CPI (Trimmed Mean), y to y %ch"
+keep year quarter cpipc_trim_can
+sort year quarter, stable
+save cpipc_trim_can, replace
+
+
+************ CANADA Output gap *********************
+* stored in file output_gap_can.txt
+* Data source: http://www.bankofcanada.ca/rates/indicators/capacity-and-inflation-pressures/product-market-definitions/product-market-historical-data/
+*
+* Create Stata variables:
+* gap_int_can - output gap, Integrated
+* gap_fil_can - output gap, Extended multivariate filter
+
+clear 
+import delimited using output_gap_can.txt, varnames(1) delim(tab)
+rename integrated gap_int_can
+label variable gap_int_can "Output Gap Integrated"
+rename filter gap_fil_can
+label variable gap_fil_can "Output Gap Filtered"
+gen year_s = substr(time_q,1,4)
+gen year = real(year_s)
+gen quarter_s = substr(time_q,6,1)
+gen quarter = real(quarter_s)
+keep year quarter gap_int_can gap_fil_can
+order year quarter
+sort year quarter, stable
+save gap_can, replace
+
+
+
+
+************ U.S. Fed funds *********************
+* Data source: https://fred.stlouisfed.org/series/FEDFUNDS/downloaddata?cid=118
+* Edit Graph - Modify Frequency - Quarterly (Average)
+* Download CSV (data)
+* downloads file FEDFUNDS.csv
+
+clear
+import delimited using FEDFUNDS.csv, varnames(1)
+gen time = date(date, "YMD")
+gen year = year(time)
+gen quarter = quarter(time)
+rename fedfunds fed_us
+label variable fed_us "Federal Funds Rate, US"
+keep year quarter fed_us
+order year quarter
+sort year quarter, stable
+save fed_us, replace
+
+************ U.S. CPI *********************
+* Data source: https://fred.stlouisfed.org/series/PCEPI/downloaddata
+* Edit Graph - Modify Frequency - Quarterly (Average)
+* Download CSV (data)
+* downloads file PCEPI.csv
+
+clear
+import delimited using PCEPI.csv, varnames(1)
+gen time = date(date, "YMD")
+gen year = year(time)
+gen quarter = quarter(time)
+rename pcepi cpi_us
+label variable cpi_us "CPI US"
+keep year quarter cpi_us
+order year quarter
+sort year quarter, stable
+save cpi_us, replace
+
+************ U.S. GDP *********************
+* Data source: https://fred.stlouisfed.org/series/GDP/downloaddata 
+* Download CSV (data)
+* downloads file GDP.csv
+*
+* Deflator:
+* Data source: https://fred.stlouisfed.org/series/GDPDEF/downloaddata
+* Download CSV (data)
+* downloads file GDPDEF.csv
+
+* Deflator
+clear
+import delimited using GDPDEF.csv, varnames(1)
+gen time = date(date, "YMD")
+gen year = year(time)
+gen quarter = quarter(time)
+rename gdpdef gdpdef_us
+label variable gdpdef_us "Deflator, US"
+keep year quarter gdpdef_us
+order year quarter
+sort year quarter, stable
+save gdpdef_us, replace
+
+* nominal GDP
+clear
+import delimited using GDP.csv, varnames(1)
+gen time = date(date, "YMD")
+gen year = year(time)
+gen quarter = quarter(time)
+rename gdp gdp_us
+label variable gdp_us "GDP, US"
+
+* convert to real GDP
+merge 1:1 year quarter using gdpdef_us
+replace gdp_us = gdp_us/gdpdef_us
+keep year quarter gdp_us
+order year quarter
+sort year quarter, stable
+save gdp_us, replace
+
+************ U.S. output gap *********************
+* Data source: https://fred.stlouisfed.org/series/NGDPPOT
+* SPECIFY MAXIMUM RANGE OF DATA (Max)
+* Download CSV (data)
+* downloads file NGDPPOT.csv
+
+* nominal potential GDP
+clear
+import delimited using NGDPPOT.csv, varnames(1)
+gen time = date(date, "YMD")
+gen year = year(time)
+gen quarter = quarter(time)
+keep year quarter ngdppot
+sort year quarter, stable
+
+* convert to real potential GDP
+merge 1:1 year quarter using gdpdef_us
+replace ngdppot = ngdppot/gdpdef_us
+keep year quarter ngdppot
+
+* create output gap
+sort year quarter, stable
+merge 1:1 year quarter using gdp_us
+keep if _merge==3
+gen gap_us = 100*(gdp_us-ngdppot)/ngdppot
+label variable gap_us "Output Gap, US"
+keep gap_us year quarter
+order year quarter
+sort year quarter, stable
+save gap_us, replace
+
+************ U.S. unemployment *********************
+* Data source: https://fred.stlouisfed.org/series/UNRATE/downloaddata
+* Edit Graph - Modify Frequency - Quarterly (Average)
+* Download CSV (data)
+* downloads file UNRATE.csv
+
+clear
+import delimited using UNRATE.csv, varnames(1)
+gen time = date(date, "YMD")
+gen year = year(time)
+gen quarter = quarter(time)
+rename unrate un_us
+label variable un_us "Unemployment rate, US"
+keep year quarter un_us
+order year quarter
+sort year quarter, stable
+save un_us, replace
+
+************ merge variables *****************
+clear
+use rate_target_can
+local ylist = "rate_t3m_can cpi_can cpipc_comm_can cpipc_med_can cpipc_trim_can gdp_can gap_can fed_us cpi_us gdp_us un_us gap_us binv_can quart_export_can_us quart_import_can_us ippi_can un_can quart_exr_us_can"
+foreach y in `ylist' {
+  merge 1:1 year quarter using `y'
+  drop _merge
+  sort year quarter, stable
+}
+gen time=yq(year,quarter)
+tsset time
+format time %tq
+order time year quarter
+
+********** plot variables *************
+local ylist = "rate_target_can rate_t3m_can cpi_can gdp_can gap_int_can gap_fil_can fed_us cpi_us gdp_us un_us gap_us binv_can quart_export_can_us quart_import_can_us ippi_can un_can quart_exr_us_can"
+*drop if year<2018
+foreach y in `ylist' {
+  line `y' time if `y'~=., name(`y', replace)
+}
+twoway (line cpipc_comm_can time if cpipc_comm_can~=.) (line cpipc_med_can time if cpipc_med_can~=.) (line cpipc_trim_can time if cpipc_trim_can~=.), legend(cols(1))
+
+********** test for unit root *************
+local ylist = "rate_target_can rate_t3m_can cpi_can cpipc_comm_can cpipc_med_can cpipc_trim_can gdp_can gap_int_can gap_fil_can fed_us cpi_us gdp_us un_us gap_us binv_can quart_export_can_us quart_import_can_us ippi_can un_can quart_exr_us_can"
+foreach y in `ylist' {
+  disp "`y'"
+  dfuller `y', trend
+  pperron `y', trend
+}
+
+********** difference variables and test for unit root *************
+local ylist = "rate_target_can rate_t3m_can cpi_can cpipc_comm_can cpipc_med_can cpipc_trim_can gdp_can gap_int_can gap_fil_can fed_us cpi_us gdp_us un_us gap_us binv_can quart_export_can_us quart_import_can_us ippi_can un_can quart_exr_us_can"
+foreach y in `ylist' {
+  gen D_`y' = D.`y'
+}  
+foreach y in `ylist' {
+  dfuller D_`y', trend
+  pperron D_`y', trend
+}
+
+********** plot differenced variables *************
+local ylist = "rate_target_can rate_t3m_can cpi_can gdp_can gap_int_can gap_fil_can fed_us cpi_us gdp_us un_us gap_us binv_can quart_export_can_us quart_import_can_us ippi_can un_can quart_exr_us_can"
+foreach y in `ylist' {
+  line D_`y' time if D_`y'~=., name(`y', replace)
+}
+twoway (line D_cpipc_comm_can time if D_cpipc_comm_can~=.) (line D_cpipc_med_can time if D_cpipc_med_can~=.) (line D_cpipc_trim_can time if D_cpipc_trim_can~=.), legend(cols(1))
+
+******* save *******
+save dat1, replace
+
+
+
